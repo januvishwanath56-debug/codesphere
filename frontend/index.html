@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeSphere — Cloud Coding Judge</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    /* Hero */
+    .hero {
+      min-height: calc(100vh - 60px);
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(0, 212, 255, 0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 50% at 20% 70%, rgba(123, 94, 167, 0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 212, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 700px;
+      padding: 0 2rem;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0, 212, 255, 0.08);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title .line-accent {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-desc {
+      font-size: 1rem;
+      color: var(--text2);
+      line-height: 1.8;
+      margin-bottom: 2.5rem;
+      max-width: 520px;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Floating code card */
+    .hero-visual {
+      position: absolute;
+      right: 5%;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 420px;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(-50%) translateY(0);
+      }
+
+      50% {
+        transform: translateY(-50%) translateY(-16px);
+      }
+    }
+
+    .code-card {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4), 0 0 60px rgba(0, 212, 255, 0.08);
+    }
+
+    .code-card-header {
+      background: var(--bg3);
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot-red {
+      background: #ff5f56;
+    }
+
+    .dot-yellow {
+      background: #ffbd2e;
+    }
+
+    .dot-green {
+      background: #27c93f;
+    }
+
+    .code-card-body {
+      padding: 1.2rem;
+      font-size: 0.8rem;
+      line-height: 1.8;
+    }
+
+    .tok-kw {
+      color: #c792ea;
+    }
+
+    .tok-fn {
+      color: #82aaff;
+    }
+
+    .tok-str {
+      color: #c3e88d;
+    }
+
+    .tok-num {
+      color: #f78c6c;
+    }
+
+    .tok-cm {
+      color: #546e7a;
+      font-style: italic;
+    }
+
+    .tok-op {
+      color: var(--accent);
+    }
+
+    /* Stats */
+    .stats-row {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-top: 3rem;
+    }
+
+    .stat {
+      text-align: left;
+    }
+
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--text3);
+      margin-top: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Features */
+    .features {
+      padding: 6rem 0;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-sub {
+      color: var(--text2);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      max-width: 540px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 3rem;
+    }
+
+    .feature-card {
+      padding: 1.8rem;
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      display: block;
+      filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.3));
+    }
+
+    .feature-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+
+    .feature-desc {
+      font-size: 0.85rem;
+      color: var(--text2);
+      line-height: 1.7;
+    }
+
+    /* Languages */
+    .langs {
+      padding: 4rem 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .langs-inner {
+      display: flex;
+      align-items: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .lang-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 0.6rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all var(--transition);
+    }
+
+    .lang-pill:hover {
+      border-color: var(--accent);
+      box-shadow: var(--glow);
+    }
+
+    @media (max-width: 900px) {
+      .hero-visual {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="navbar-mount"></div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-content page-container" style="width:100%">
+      <div class="hero-tag">☁️ Cloud-powered judge</div>
+      <h1 class="hero-title">
+        Code. Run. <br>
+        <span class="line-accent">Judge. Deploy.</span>
+      </h1>
+      <p class="hero-desc">
+        A modern cloud-based coding platform. Solve 10 hand-crafted problems,
+        execute code securely in Docker containers, and get instant verdicts —
+        all from your browser.
+      </p>
+      <div class="hero-cta">
+        <a href="problems.html" class="btn btn-primary btn-lg">Start Coding →</a>
+        <a href="playground.html" class="btn btn-ghost btn-lg">Try Playground</a>
+      </div>
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-num">10</div>
+          <div class="stat-label">Problems</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">3</div>
+          <div class="stat-label">Languages</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">5</div>
+          <div class="stat-label">Verdict Types</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating code demo -->
+    <div class="hero-visual">
+      <div class="code-card">
+        <div class="code-card-header">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+          <span style="margin-left:0.5rem;font-size:0.75rem;color:var(--text3)">solution.py</span>
+        </div>
+        <div class="code-card-body">
+          <div><span class="tok-cm"># Two Sum — CodeSphere</span></div>
+          <div><span class="tok-kw">def</span> <span class="tok-fn">two_sum</span>(nums, target):</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;seen <span class="tok-op">=</span> {}</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="tok-kw">for</span> i, n <span class="tok-kw">in</span> <span
+              class="tok-fn">enumerate</span>(nums):</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;diff <span class="tok-op">=</span> target <span
+              class="tok-op">-</span> n</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tok-kw">if</span> diff <span
+              class="tok-kw">in</span> seen:</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+              class="tok-kw">return</span> [seen[diff], i]</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;seen[n] <span class="tok-op">=</span> i</div>
+          <br>
+          <div id="verdict-demo" style="display:flex;align-items:center;gap:0.6rem;margin-top:0.5rem;">
+            <span class="verdict verdict-accepted">✓ Accepted</span>
+            <span style="color:var(--text3);font-size:0.75rem;">3/3 test cases · 0.041s</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="page-container">
+      <h2 class="section-title">Everything you need</h2>
+      <p class="section-sub">Built with a modern stack: FastAPI backend, Monaco editor, Docker isolation, and AWS
+        deployment.</p>
+      <div class="features-grid">
+        <div class="card card-glow feature-card animate-fade-up" style="animation-delay:0s">
+          <span class="feature-icon">🐳</span>
+          <div class="feature-title">Docker Sandboxing</div>
+          <p class="feature-desc">Every code execution runs in an isolated container with CPU, memory, and time limits.
+            No network access. Zero risk.</p>
+        </div>
+        <div class="card card-glow feature-card animate-fade-up" style="animation-delay:0.1s">
+          <span class="feature-icon">⚡</span>
+          <div class="feature-title">Real-time Verdicts</div>
+          <p class="feature-desc">Get instant feedback: Accepted, Wrong Answer, TLE, Runtime Error, or Compilation Error
+            — with execution time.</p>
+        </div>
+        <div class="card card-glow feature-card animate-fade-up" style="animation-delay:0.2s">
+          <span class="feature-icon">🖊️</span>
+          <div class="feature-title">Monaco Editor</div>
+          <p class="feature-desc">The same editor powering VS Code — with syntax highlighting, auto-indentation, and
+            full keyboard shortcuts.</p>
+        </div>
+        <div class="card card-glow feature-card animate-fade-up" style="animation-delay:0.3s">
+          <span class="feature-icon">☁️</span>
+          <div class="feature-title">AWS Deployed</div>
+          <p class="feature-desc">Frontend on Amplify with auto CI/CD from GitHub. Backend on EC2. Production-ready
+            cloud architecture.</p>
+        </div>
+        <div class="card card-glow feature-card animate-fade-up" style="animation-delay:0.4s">
+          <span class="feature-icon">🏆</span>
+          <div class="feature-title">Submission History</div>
+          <p class="feature-desc">Logged-in users see all past submissions with verdicts, languages, and timestamps.</p>
+        </div>
+        <div class="card card-glow feature-card animate-fade-up" style="animation-delay:0.5s">
+          <span class="feature-icon">🎮</span>
+          <div class="feature-title">Free Playground</div>
+          <p class="feature-desc">Execute any code with custom stdin — no problem constraints. Perfect for experimenting
+            and testing ideas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Languages -->
+  <section class="langs">
+    <div class="page-container">
+      <div class="langs-inner">
+        <span
+          style="color:var(--text3);font-size:0.82rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Supported
+          Languages</span>
+        <div class="lang-pill">🐍 Python 3</div>
+        <div class="lang-pill">⚙️ C++17</div>
+        <div class="lang-pill">☕ Java 21</div>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('navbar-mount').innerHTML = renderNavbar('home');
+  </script>
+</body>
+
+</html>

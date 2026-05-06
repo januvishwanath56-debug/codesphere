@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Problem — CodeSphere</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .problem-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+    .problem-panel {
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+    .problem-panel-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg2);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .problem-body { padding: 1.5rem; flex: 1; }
+    .problem-section { margin-bottom: 1.8rem; }
+    .problem-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 0.75rem;
+    }
+    .problem-desc { font-size: 0.88rem; line-height: 1.8; color: var(--text2); }
+    .code-block {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+      color: var(--text);
+      white-space: pre-wrap;
+      margin-top: 0.5rem;
+    }
+    .editor-panel { display: flex; flex-direction: column; overflow: hidden; }
+    .editor-toolbar {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--bg2);
+    }
+    #monaco-container { flex: 1; min-height: 0; }
+    .editor-bottom {
+      border-top: 1px solid var(--border);
+      background: var(--bg2);
+      display: flex;
+      flex-direction: column;
+    }
+    .editor-bottom-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .etab {
+      padding: 0.55rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text3);
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-family: var(--font-mono);
+      transition: all var(--transition);
+    }
+    .etab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .etab:hover { color: var(--text); }
+    .output-area {
+      padding: 0.75rem 1rem;
+      min-height: 140px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+      color: var(--text2);
+      white-space: pre-wrap;
+    }
+    @media (max-width: 900px) {
+      .problem-layout { grid-template-columns: 1fr; height: auto; overflow: visible; }
+      .problem-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+      #monaco-container { height: 350px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="navbar-mount"></div>
+
+<div class="problem-layout">
+  <div class="problem-panel" id="problem-panel">
+    <div class="problem-panel-header">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <a href="problems.html" style="color:var(--text3);font-size:0.82rem;">← Back</a>
+        <span id="problem-title" style="font-family:var(--font-display);font-weight:700;font-size:1rem;">Loading…</span>
+        <span id="problem-badge"></span>
+      </div>
+    </div>
+    <div class="problem-body" id="problem-body">
+      <div style="display:flex;align-items:center;gap:0.75rem;color:var(--text2);padding:2rem 0;">
+        <div class="spinner"></div> Loading problem…
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-panel">
+    <div class="editor-toolbar">
+      <select class="select" id="lang-select"></select>
+      <div style="flex:1"></div>
+      <button type="button" class="btn btn-ghost btn-sm" id="run-btn">▷ Run</button>
+      <button type="button" class="btn btn-success btn-sm" id="submit-btn">⬆ Submit</button>
+    </div>
+    <div id="monaco-container"></div>
+    <div class="editor-bottom">
+      <div class="editor-bottom-tabs">
+        <button type="button" class="etab active" id="tab-output">Output</button>
+        <button type="button" class="etab" id="tab-history">History</button>
+      </div>
+      <div id="panel-output" class="output-area">
+        <span style="color:var(--text3)">// Run or submit your code to see output here</span>
+      </div>
+      <div id="panel-history" class="output-area" style="display:none">
+        <span style="color:var(--text3)">// Your submission history will appear here</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.getElementById('navbar-mount').innerHTML = renderNavbar('problems');
+
+  // ── Wire up ALL event listeners via addEventListener (NOT onclick attributes) ──
+  document.getElementById('run-btn').addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation(); runCode();
+  });
+  document.getElementById('submit-btn').addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation(); submitCode();
+  });
+  document.getElementById('tab-output').addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation(); switchTab('output');
+  });
+  document.getElementById('tab-history').addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation(); switchTab('history');
+  });
+
+  // Language selector — populate and wire
+  const LANGS = [
+    { value: 'python', label: '🐍 Python 3' },
+    { value: 'cpp',    label: '⚙️ C++17' },
+    { value: 'java',   label: '☕ Java 21' },
+  ];
+  const langSel = document.getElementById('lang-select');
+  LANGS.forEach(l => {
+    const o = document.createElement('option');
+    o.value = l.value; o.textContent = l.label;
+    langSel.appendChild(o);
+  });
+  langSel.addEventListener('change', function(e) { e.preventDefault(); onLangChange(); });
+
+  const params = new URLSearchParams(window.location.search);
+  const problemId = parseInt(params.get('id') || '1');
+  let editor = null;
+  let problem = null;
+
+  const STARTERS = {
+    python: `import sys\ninput = sys.stdin.readline\n\ndef solve():\n    # Read input\n    line = input().strip()\n    \n    # Write your solution here\n    \n    print()\n\nsolve()\n`,
+    cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n    \n    // Write your solution here\n    \n    return 0;\n}\n`,
+    java: `import java.util.*;\nimport java.io.*;\n\npublic class Solution {\n    public static void main(String[] args) throws IOException {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        // Write your solution here\n    }\n}\n`
+  };
+
+  require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+  require(['vs/editor/editor.main'], function () {
+    const isDark = (localStorage.getItem('theme') || 'dark') === 'dark';
+    editor = monaco.editor.create(document.getElementById('monaco-container'), {
+      value: STARTERS.python,
+      language: 'python',
+      theme: isDark ? 'vs-dark' : 'vs',
+      fontSize: 13,
+      fontFamily: "'JetBrains Mono', monospace",
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      lineNumbers: 'on',
+      automaticLayout: true,
+      tabSize: 4,
+    });
+    new MutationObserver(() => {
+      monaco.editor.setTheme(
+        document.documentElement.getAttribute('data-theme') === 'dark' ? 'vs-dark' : 'vs'
+      );
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  });
+
+  function onLangChange() {
+    const lang = langSel.value;
+    if (!editor) return;
+    monaco.editor.setModelLanguage(editor.getModel(), lang === 'cpp' ? 'cpp' : lang === 'java' ? 'java' : 'python');
+    editor.setValue(STARTERS[lang]);
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function setOutput(html) {
+    document.getElementById('panel-output').innerHTML = html;
+  }
+
+  async function runCode() {
+    const btn = document.getElementById('run-btn');
+    const lang = langSel.value;
+    const code = editor ? editor.getValue() : '';
+    const stdin = problem ? (problem.sample_input || '') : '';
+
+    btn.disabled = true;
+    btn.textContent = '…';
+    switchTab('output');
+    setOutput('<span style="color:var(--text3)">Running…</span>');
+
+    try {
+      const res = await API.post('/run', { language: lang, code: code, stdin: stdin });
+      const col = res.status === 'OK' ? 'var(--green)' : 'var(--yellow)';
+      setOutput(
+        '<span style="color:' + col + ';font-weight:600;">[' + res.status + ']</span>' +
+        ' <span style="color:var(--text3)">• ' + res.execution_time + 's</span>\n\n' +
+        (res.output ? escHtml(res.output) : '<span style="color:var(--text3)">(no output)</span>')
+      );
+    } catch (err) {
+      setOutput('<span style="color:var(--red)">Error: ' + escHtml(err.message) + '</span>');
+    }
+
+    btn.disabled = false;
+    btn.textContent = '▷ Run';
+  }
+
+  async function submitCode() {
+    const btn = document.getElementById('submit-btn');
+    const lang = langSel.value;
+    const code = editor ? editor.getValue() : '';
+
+    btn.disabled = true;
+    btn.textContent = '…';
+    switchTab('output');
+    setOutput('<span style="color:var(--text3)">Judging…</span>');
+
+    try {
+      const res = await API.post('/submit', { problem_id: problemId, language: lang, code: code });
+      const isAC = res.verdict === 'Accepted';
+      const col = isAC ? 'var(--green)' : res.verdict.includes('Error') ? 'var(--yellow)' : 'var(--red)';
+      setOutput(
+        '<span style="color:' + col + ';font-weight:700;font-size:1rem;">' + (isAC ? '✓' : '✗') + ' ' + res.verdict + '</span>\n' +
+        '<span style="color:var(--text3)">Test cases: ' + res.passed + '/' + res.total + ' passed • ' + res.execution_time + 's</span>'
+      );
+      if (isAC) Toast.success('Accepted! 🎉');
+      else Toast.error(res.verdict);
+      loadHistory();
+    } catch (err) {
+      setOutput('<span style="color:var(--red)">Error: ' + escHtml(err.message) + '</span>');
+    }
+
+    btn.disabled = false;
+    btn.textContent = '⬆ Submit';
+  }
+
+  async function loadHistory() {
+    if (!Auth.isLoggedIn()) {
+      document.getElementById('panel-history').innerHTML = '<span style="color:var(--text3)">Login to view submission history.</span>';
+      return;
+    }
+    try {
+      const subs = await API.get('/submissions');
+      const mine = subs.filter(function(s) { return s.problem_id === problemId; });
+      if (!mine.length) {
+        document.getElementById('panel-history').innerHTML = '<span style="color:var(--text3)">No submissions yet.</span>';
+        return;
+      }
+      document.getElementById('panel-history').innerHTML = mine.map(function(s) {
+        const col = s.verdict === 'Accepted' ? 'var(--green)' : s.verdict.includes('Error') ? 'var(--yellow)' : 'var(--red)';
+        return '<div style="margin-bottom:0.6rem;padding-bottom:0.6rem;border-bottom:1px solid var(--border);">' +
+          '<span style="color:' + col + ';font-weight:600;">' + s.verdict + '</span>' +
+          '<span style="color:var(--text3);margin-left:0.75rem;font-size:0.78rem;">' + s.language + ' • ' + s.execution_time + 's • ' + new Date(s.submitted_at).toLocaleString() + '</span>' +
+          '</div>';
+      }).join('');
+    } catch (e) {}
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tab-output').classList.toggle('active', tab === 'output');
+    document.getElementById('tab-history').classList.toggle('active', tab === 'history');
+    document.getElementById('panel-output').style.display = tab === 'output' ? 'block' : 'none';
+    document.getElementById('panel-history').style.display = tab === 'history' ? 'block' : 'none';
+    if (tab === 'history') loadHistory();
+  }
+
+  async function loadProblem() {
+    try {
+      problem = await API.get('/problem/' + problemId);
+      document.title = problem.title + ' — CodeSphere';
+      document.getElementById('problem-title').textContent = problem.title;
+      document.getElementById('problem-badge').innerHTML =
+        '<span class="badge badge-' + problem.difficulty.toLowerCase() + '">' + problem.difficulty + '</span>';
+      var html = '<div class="problem-section"><div class="problem-desc">' +
+        problem.description.replace(/\n/g,'<br>').replace(/`([^`]+)`/g,'<code style="color:var(--accent);background:rgba(0,212,255,0.08);padding:0.1rem 0.3rem;border-radius:4px;">$1</code>') +
+        '</div></div>';
+      if (problem.constraints)
+        html += '<div class="problem-section"><div class="problem-section-title">Constraints</div><div class="problem-desc" style="color:var(--text3)">' + problem.constraints.replace(/\n/g,'<br>') + '</div></div>';
+      if (problem.input_format)
+        html += '<div class="problem-section"><div class="problem-section-title">Input Format</div><div class="problem-desc">' + problem.input_format.replace(/\n/g,'<br>') + '</div></div>';
+      if (problem.output_format)
+        html += '<div class="problem-section"><div class="problem-section-title">Output Format</div><div class="problem-desc">' + problem.output_format.replace(/\n/g,'<br>') + '</div></div>';
+      html += '<div class="problem-section"><div class="problem-section-title">Sample Input</div><div class="code-block">' + escHtml(problem.sample_input) + '</div></div>';
+      html += '<div class="problem-section"><div class="problem-section-title">Sample Output</div><div class="code-block">' + escHtml(problem.sample_output) + '</div></div>';
+      document.getElementById('problem-body').innerHTML = html;
+    } catch (e) {
+      document.getElementById('problem-body').innerHTML = '<div style="color:var(--red);padding:1rem;">Failed to load problem. Is the backend running?</div>';
+    }
+  }
+
+  loadProblem();
+</script>
+</body>
+</html>

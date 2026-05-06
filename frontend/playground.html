@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playground — CodeSphere</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .playground-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+    .editor-section {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .editor-bar {
+      padding: 0.75rem 1rem;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    #monaco-pg { flex: 1; min-height: 0; }
+    .side-section { display: flex; flex-direction: column; overflow: hidden; background: var(--bg2); }
+    .side-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .side-panel { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .panel-block { display: flex; flex-direction: column; border-bottom: 1px solid var(--border); min-height: 0; }
+    .panel-block-title {
+      padding: 0.5rem 1rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .panel-textarea {
+      flex: 1;
+      resize: none;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      padding: 0.75rem 1rem;
+      min-height: 100px;
+    }
+    .output-section { flex: 2; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+    .output-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--text2);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .run-bar {
+      padding: 0.75rem 1rem;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .exec-info { font-size: 0.78rem; color: var(--text3); }
+    @media (max-width: 900px) {
+      .playground-layout { grid-template-columns: 1fr; height: auto; overflow: visible; }
+      .editor-section { border-right: none; height: 400px; }
+      .side-section { height: 400px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="navbar-mount"></div>
+
+<div class="playground-layout">
+  <div class="editor-section">
+    <div class="editor-bar">
+      <span style="font-family:var(--font-display);font-weight:700;font-size:0.95rem;">⚡ Playground</span>
+      <div style="flex:1"></div>
+      <select class="select" id="lang-select"></select>
+      <button type="button" class="btn btn-ghost btn-sm" id="clear-btn">Clear</button>
+    </div>
+    <div id="monaco-pg"></div>
+  </div>
+
+  <div class="side-section">
+    <div class="side-header">Console</div>
+    <div class="side-panel">
+      <div class="panel-block" style="flex:1">
+        <div class="panel-block-title">Stdin</div>
+        <textarea class="panel-textarea" id="stdin-input" placeholder="Enter program input here…"></textarea>
+      </div>
+      <div class="output-section">
+        <div class="panel-block-title">Output</div>
+        <div class="output-content" id="output-content">
+          <span style="color:var(--text3)">// Press Run to execute your code</span>
+        </div>
+      </div>
+    </div>
+    <div class="run-bar">
+      <button type="button" class="btn btn-primary" id="run-btn" style="flex:1;justify-content:center;">▷ Run Code</button>
+      <span class="exec-info" id="exec-info"></span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+  document.getElementById('navbar-mount').innerHTML = renderNavbar('playground');
+
+  // ── Wire ALL events via addEventListener — no onclick attributes ──
+  document.getElementById('run-btn').addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation(); runCode();
+  });
+  document.getElementById('clear-btn').addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation(); clearEditor();
+  });
+
+  const LANGS = [
+    { value: 'python', label: '🐍 Python 3' },
+    { value: 'cpp',    label: '⚙️ C++17' },
+    { value: 'java',   label: '☕ Java 21' },
+  ];
+  const langSel = document.getElementById('lang-select');
+  LANGS.forEach(function(l) {
+    var o = document.createElement('option');
+    o.value = l.value; o.textContent = l.label;
+    langSel.appendChild(o);
+  });
+  langSel.addEventListener('change', function(e) { e.preventDefault(); onLangChange(); });
+
+  let editor = null;
+
+  const STARTERS = {
+    python: `# CodeSphere Playground\n\nnums = list(map(int, input().split()))\nprint(f"Sum: {sum(nums)}")\nprint(f"Max: {max(nums)}")\n`,
+    cpp: `// CodeSphere Playground\n#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line;\n    getline(cin, line);\n    cout << "Input: " << line << endl;\n    return 0;\n}\n`,
+    java: `// CodeSphere Playground\nimport java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        System.out.println("Hello from Java!");\n    }\n}\n`
+  };
+
+  require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+  require(['vs/editor/editor.main'], function () {
+    const isDark = (localStorage.getItem('theme') || 'dark') === 'dark';
+    editor = monaco.editor.create(document.getElementById('monaco-pg'), {
+      value: STARTERS.python,
+      language: 'python',
+      theme: isDark ? 'vs-dark' : 'vs',
+      fontSize: 13,
+      fontFamily: "'JetBrains Mono', monospace",
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      lineNumbers: 'on',
+      automaticLayout: true,
+      tabSize: 4,
+    });
+    new MutationObserver(function() {
+      monaco.editor.setTheme(
+        document.documentElement.getAttribute('data-theme') === 'dark' ? 'vs-dark' : 'vs'
+      );
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  });
+
+  function onLangChange() {
+    const lang = langSel.value;
+    if (!editor) return;
+    monaco.editor.setModelLanguage(editor.getModel(), lang === 'cpp' ? 'cpp' : lang === 'java' ? 'java' : 'python');
+    editor.setValue(STARTERS[lang]);
+  }
+
+  function clearEditor() {
+    if (editor) editor.setValue('');
+    document.getElementById('stdin-input').value = '';
+    document.getElementById('output-content').innerHTML = '<span style="color:var(--text3)">// Cleared</span>';
+    document.getElementById('exec-info').textContent = '';
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function runCode() {
+    const btn = document.getElementById('run-btn');
+    const lang = langSel.value;
+    const code = editor ? editor.getValue() : '';
+    const stdin = document.getElementById('stdin-input').value;
+
+    btn.disabled = true;
+    btn.textContent = '…';
+    document.getElementById('output-content').innerHTML = '<span style="color:var(--text3)">Executing…</span>';
+    document.getElementById('exec-info').textContent = '';
+
+    try {
+      const res = await API.post('/run', { language: lang, code: code, stdin: stdin });
+      const col = res.status === 'OK' ? 'var(--green)' : 'var(--yellow)';
+      document.getElementById('output-content').innerHTML =
+        '<span style="color:' + col + ';font-weight:600;">[' + res.status + ']</span>\n\n' +
+        (res.output ? escHtml(res.output) : '<span style="color:var(--text3)">(no output)</span>');
+      document.getElementById('exec-info').textContent = res.execution_time + 's';
+    } catch (err) {
+      document.getElementById('output-content').innerHTML =
+        '<span style="color:var(--red)">Error: ' + escHtml(err.message) + '</span>';
+    }
+
+    btn.disabled = false;
+    btn.textContent = '▷ Run Code';
+  }
+</script>
+</body>
+</html>

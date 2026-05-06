@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Problems — CodeSphere</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .problems-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 2rem;
+      padding: 2rem 0 4rem;
+    }
+    .sidebar {
+      position: sticky;
+      top: 80px;
+      height: fit-content;
+    }
+    .sidebar-section { margin-bottom: 1.5rem; }
+    .sidebar-title { font-size: 0.72rem; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.75rem; }
+    .filter-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--text2);
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-bottom: 0.2rem;
+      text-align: left;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--surface2);
+      color: var(--text);
+    }
+    .filter-btn.active { color: var(--accent); }
+
+    /* Problem table */
+    .problem-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .problem-row {
+      display: grid;
+      grid-template-columns: 50px 1fr 120px 80px;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.2rem;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all var(--transition);
+      text-decoration: none;
+      color: var(--text);
+    }
+    .problem-row:hover {
+      border-color: rgba(0,212,255,0.25);
+      background: var(--surface2);
+      transform: translateX(3px);
+    }
+    .problem-num { color: var(--text3); font-size: 0.82rem; font-weight: 600; }
+    .problem-title { font-weight: 600; font-size: 0.9rem; }
+    .problem-title span { color: var(--text2); font-size: 0.78rem; font-weight: 400; display: block; margin-top: 0.15rem; }
+
+    /* Header row */
+    .list-header {
+      display: grid;
+      grid-template-columns: 50px 1fr 120px 80px;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.5rem 1.2rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 0.5rem;
+    }
+
+    .loading-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 2rem;
+      color: var(--text2);
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      .problems-layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .problem-row { grid-template-columns: 40px 1fr 90px; }
+      .list-header { grid-template-columns: 40px 1fr 90px; }
+      .problem-row > *:last-child, .list-header > *:last-child { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="navbar-mount"></div>
+
+<div class="page-container">
+  <div class="page-header">
+    <h1 style="font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-1px;">Problems</h1>
+    <p style="color:var(--text2);font-size:0.9rem;margin-top:0.5rem;">10 curated problems across three difficulty levels.</p>
+  </div>
+
+  <div class="problems-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Difficulty</div>
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All <span style="color:var(--text3)" id="count-all"></span></button>
+        <button class="filter-btn" data-filter="Easy" onclick="setFilter('Easy', this)">
+          <span>Easy</span> <span class="badge badge-easy" id="count-easy">—</span>
+        </button>
+        <button class="filter-btn" data-filter="Medium" onclick="setFilter('Medium', this)">
+          <span>Medium</span> <span class="badge badge-medium" id="count-medium">—</span>
+        </button>
+        <button class="filter-btn" data-filter="Hard" onclick="setFilter('Hard', this)">
+          <span>Hard</span> <span class="badge badge-hard" id="count-hard">—</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main list -->
+    <main>
+      <div class="list-header">
+        <span>#</span>
+        <span>Title</span>
+        <span>Difficulty</span>
+        <span>Status</span>
+      </div>
+      <div class="problem-list" id="problem-list">
+        <div class="loading-row">
+          <div class="spinner"></div>
+          <span>Loading problems…</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  document.getElementById('navbar-mount').innerHTML = renderNavbar('problems');
+
+  let allProblems = [];
+  let currentFilter = 'all';
+
+  async function loadProblems() {
+    try {
+      allProblems = await API.get('/problems');
+      updateCounts();
+      renderList();
+    } catch (e) {
+      document.getElementById('problem-list').innerHTML = `
+        <div class="loading-row" style="color:var(--red)">⚠ Failed to load problems. Is the backend running?</div>
+      `;
+    }
+  }
+
+  function updateCounts() {
+    const easy = allProblems.filter(p => p.difficulty === 'Easy').length;
+    const med = allProblems.filter(p => p.difficulty === 'Medium').length;
+    const hard = allProblems.filter(p => p.difficulty === 'Hard').length;
+    document.getElementById('count-all').textContent = allProblems.length;
+    document.getElementById('count-easy').textContent = easy;
+    document.getElementById('count-medium').textContent = med;
+    document.getElementById('count-hard').textContent = hard;
+  }
+
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderList();
+  }
+
+  function renderList() {
+    const filtered = currentFilter === 'all'
+      ? allProblems
+      : allProblems.filter(p => p.difficulty === currentFilter);
+
+    if (filtered.length === 0) {
+      document.getElementById('problem-list').innerHTML = `<div class="loading-row">No problems found.</div>`;
+      return;
+    }
+
+    document.getElementById('problem-list').innerHTML = filtered.map(p => `
+      <a class="problem-row" href="problem-detail.html?id=${p.id}">
+        <span class="problem-num">${String(p.id).padStart(2, '0')}</span>
+        <span class="problem-title">${p.title}</span>
+        <span><span class="badge badge-${p.difficulty.toLowerCase()}">${p.difficulty}</span></span>
+        <span style="color:var(--text3);font-size:0.78rem;">—</span>
+      </a>
+    `).join('');
+  }
+
+  loadProblems();
+</script>
+</body>
+</html>
