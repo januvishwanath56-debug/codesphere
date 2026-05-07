@@ -1,5 +1,6 @@
 // ─── Config ───
-const API_BASE = window.API_BASE || 'http://13.232.2.91:8000';
+// const API_BASE = window.API_BASE || 'http://13.232.2.91:8000';
+const API_BASE = 'http://13.232.2.91:8000';
 
 // ─── Theme ───
 const Theme = {
